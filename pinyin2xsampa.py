@@ -16,7 +16,20 @@
 # License along with this program.  If not,
 # see <http://www.gnu.org/licenses/>.
 
+# ============================================================================
+
+# Modifications made by Ritchy Tang <mizuki.ykn@outlook.com>
+# Copyright (C) 2024 Ritchy Tang <mizuki.ykn@outlook.com>
+#
+# Description of modifications:
+# - changed the XSAMPA standard to the one used by Synthesizer V
+#   - removed support for words end with 'r' 
+#   - removed support for '\u00ea' ('ê') and 'eh'
+#   - removed support for 'amg', 'emgs', 'um', 'em', etc.
+#   - removed support for 'io'
+
 import sys
+import json
 
 
 if sys.version_info < (3,):
@@ -25,64 +38,68 @@ if sys.version_info < (3,):
 
 
 wholereplacetable = (
+    ('yi', 'i'), ('wu', 'u'), ('yu', 'v'),
     ('bo', 'buo'), ('po', 'puo'), ('mo', 'muo'), ('fo', 'fuo'),
     ('zhi', 'zhirh'), ('chi', 'chirh'), ('shi', 'shirh'), ('ri', 'rirh'),
     ('zi', 'zih'), ('ci', 'cih'), ('si', 'sih')
 )
-localreplacetable = (
-    ('yi', 'i'), ('wu', 'u'), ('yu', 'v'), ('ju', 'jv'), ('qu', 'qv'),
-    ('xu', 'xv'), ('y', 'i'), ('w', 'u'), ('\u00ea', 'eh'), ('\u00fc', 'v'),
-    ('iu', 'iou'), ('ui', 'uei'), ('un', 'uen'), ('um', 'uem')
+localreplacetable = ( 
+    ('\u00fc', 'v'),
+    ('yu', 'y_v'), ('ju', 'jv'), ('qu', 'qv'), ('xu', 'xv'), 
+    ('ui', 'uei'), ('un', 'uen'),
+    ('w', 'w_u'), ('yi', 'y_i'), ('y', 'y_i')
 )
 initialtable = (
-    ('b', 'p'), ('p', 'p_h'), ('m', 'm'), ('f', 'f'), ('d', 't'), ('t', 't_h'),
-    ('ng', 'N'), ('n', 'n'), ('l', 'l'), ('g', 'k'), ('k', 'k_h'), ('h', 'x'),
-    ('j', 'ts\\'), ('q', 'ts\\_h'), ('x', 's\\'), ('zh', 'ts`'),
-    ('ch', 'ts`_h'), ('sh', 's`'), ('r', 'z`'), ('z', 'ts'), ('c', 'ts_h'),
-    ('s', 's')
+    ('b', 'p'), ('p', 'ph'), ('m', 'm'), ('f', 'f'), ('d', 't'), ('t', 'th'),
+    ('ng', 'N'), ('n', 'n'), ('l', 'l'), ('g', 'k'), ('k', 'kh'), ('h', 'x'),
+    ('j', 'ts\\'), ('q', 'ts\\h'), ('x', 's\\'), ('zh', 'ts`'),
+    ('ch', 'ts`h'), ('sh', 's`'), ('r', 'z`'), ('w_', 'w'), ('y_', 'j'),
+    ('z', 'ts'), ('c', 'tsh'), ('s', 's')
 )
 finaltable = (
-    ('iamg', 'iAm'), ('iang', 'iAN'), ('iomg', 'iUm'), ('iong', 'iUN'),
-    ('uamg', 'uAm'), ('uang', 'uAN'), ('uemg', 'u7m'), ('ueng', 'u7N'),
-    ('amg', 'Am'), ('ang', 'AN'), ('emg', '7m'), ('eng', '7N'), ('iam', 'iEm'),
-    ('ian', 'iE_n'), ('iao', 'iaU'), ('img', 'im'), ('ing', 'iMN'),
-    ('iou', 'i7U'), ('ong', 'UN'), ('uai', 'uaI'), ('uam', 'uam'),
-    ('uan', 'ua_n'), ('uei', 'ueI'), ('uem', 'u@m'), ('uen', 'u@_n'),
-    ('vam', 'yEm'), ('van', 'yE_n'), ('ai', 'aI'), ('am', 'am'), ('an', 'a_n'),
-    ('ao', 'AU'), ('ei', 'eI'), ('em', '@m'), ('en', '@_n'), ('ia', 'ia'),
-    ('ie', 'iE'), ('im', 'im'), ('in', 'i_n'), ('io', 'io'), ('ou', '7U'),
-    ('ua', 'ua'), ('uo', 'uO'), ('ve', 'yE'), ('vm', 'yim'), ('vn', 'yi_n'),
-    ('m', 'm'), ('ng', 'N'), ('n', 'n'), ('a', 'a'), ('o', 'o'), ('eh', 'E'),
-    ('e', 'MV'), ('ih', 'M'), ('irh', '1'), ('i', 'i'), ('u', 'u'), ('v', 'y')
+    ('iang', 'iA N'), ('iong', 'iU N'), ('uang', 'uA N'), ('ueng', 'u@ N'),
+    ('ang', 'A N'), ('eng', '@ N'), ('ing', 'i N'),
+    ('ian', 'iE :n'), ('iao', 'iAU'), ('iai', 'ia :\\i'),
+    ('iou', 'i@U'), ('ong', 'U N'), ('uai', 'ua :\\i'), 
+    ('uan', 'ua :n'), ('uei', 'ue :\\i'), ('uen', 'u@ :n'),
+    ('van', 'y{ :n'), ('ai', 'a :\\i'), ('an', 'a :n'),
+    ('ao', 'AU'), ('ei', 'e :\\i'), ('en', '@ :n'), ('ia', 'ia'),
+    ('ie', 'ie'), ('in', 'i :n'), ('iu', 'i@U'), ('ou', '@U'),
+    ('ua', 'ua'), ('uo', 'uo'), ('ve', 'yE'), ('vn', 'yE :n'),
+    ('ng', 'N'), ('n', 'n'), ('a', 'a'), ('o', 'o'),
+    ('e', '7'), ('ih', 'i\\'), ('irh', 'i`'), ('i', 'i'), ('u', 'u'), ('v', 'y')
 )
 
 
 def pinyin2xsampa(word):
     if word == 'er':
-        return 'A r\\'
+        return 'a r\\`'
+
     if word[1:].endswith('r'):
-        word = word[:-1]
-        endswithr = True
-    else:
-        endswithr = False
+        return 'ERROR'
+    
     for i in wholereplacetable:
         if word == i[0]:
             word = i[1]
             break
-    while True:
-        for i in localreplacetable:
-            wordnew = word.replace(i[0], i[1])
-            if wordnew != word:
-                word = wordnew
-                break
-        else:
+        
+    # while True:
+    for i in localreplacetable:
+        wordnew = word.replace(i[0], i[1])
+        if wordnew != word:
+            word = wordnew
             break
+        # else:
+        #     break
+        
     phonetics = []
+    
     for i in initialtable:
         if word.startswith(i[0]):
             phonetics.append(i[1])
             word = word[len(i[0]):]
             break
+    
     while True:
         for i in finaltable:
             if word.startswith(i[0]):
@@ -91,14 +108,11 @@ def pinyin2xsampa(word):
                 break
         else:
             break
+    
     if word:
         return 'ERROR'
+
     phonetics = ' '.join(phonetics)
-    if endswithr:
-        if phonetics.endswith(' n') or phonetics.endswith(' N'):
-            phonetics = phonetics[:-2] + '~ r\\'
-        else:
-            phonetics += ' r\\'
     return phonetics
 
 
@@ -118,5 +132,27 @@ def main():
         print(' '.join(output_line))
     return retval
 
+def testbench():
+    with open('pinyin2xsampa.json') as f:
+        data = json.load(f)
+    
+    count_same = 0
+    count_different = 0
+    difference = []
+    
+    for key, value in data.items():
+        phonetics = pinyin2xsampa(key)
+        if phonetics == value:
+            count_same += 1
+        else:
+            count_different += 1
+            difference.append((key, value, phonetics))
+    
+    print(f"Same count: {count_same}")
+    print(f"Different count: {count_different}")
+    print(f"Difference: {difference}")
+
 if __name__ == '__main__':
+    
+    testbench()
     sys.exit(main())
