@@ -27,6 +27,7 @@
 #   - removed support for '\u00ea' ('ê') and 'eh'
 #   - removed support for 'amg', 'emgs', 'um', 'em', etc.
 #   - removed support for 'io'
+# - modified the XSAMPA for 'yo' from 'j iAU' to 'j uo'
 
 import sys
 import json
@@ -74,7 +75,8 @@ finaltable = (
 def pinyin2xsampa(word):
     if word == 'er':
         return 'a r\\`'
-
+    if word == 'yo':
+        return 'j uo'
     if word[1:].endswith('r'):
         return 'ERROR'
     
