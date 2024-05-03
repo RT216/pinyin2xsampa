@@ -134,27 +134,6 @@ def main():
         print(' '.join(output_line))
     return retval
 
-def testbench():
-    with open('pinyin2xsampa.json') as f:
-        data = json.load(f)
-    
-    count_same = 0
-    count_different = 0
-    difference = []
-    
-    for key, value in data.items():
-        phonetics = pinyin2xsampa(key)
-        if phonetics == value:
-            count_same += 1
-        else:
-            count_different += 1
-            difference.append((key, value, phonetics))
-    
-    print(f"Same count: {count_same}")
-    print(f"Different count: {count_different}")
-    print(f"Difference: {difference}")
-
 if __name__ == '__main__':
     
-    testbench()
     sys.exit(main())
